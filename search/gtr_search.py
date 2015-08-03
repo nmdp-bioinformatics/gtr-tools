@@ -83,7 +83,7 @@ class retrieve:
                 return None # not actually returning object back to thread call,
                 # sending over to Queue, so need to return None so thread exits
             else:
-                result = "Found test " + self.query + ": " + str(test_name) +". Select an option on the bottom-left for more information or to download.\n"
+                result = "Found test " + self.query + ": " + str(test_name) +". Select 'download' on the bottom left to save this data.\n"
                 submit_to_tkinter(result)
                 return None
         else:
@@ -107,7 +107,7 @@ class retrieve:
                             self.lab_name = element.text
         if self.lab_name:
             if self.labtestoption == '' or self.labtestoption == 'name':
-                result = "Found lab " + self.query + ": " + self.lab_name + ". Select an option on the bottom-left for more information or to download.\n"
+                result = "Found lab " + self.query + ": " + self.lab_name + ". Select 'download' on the bottom left to save this data.\n"
                 submit_to_tkinter(result)
                 return None
             elif self.labtestoption == 'download':
