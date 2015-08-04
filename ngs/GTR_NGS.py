@@ -87,7 +87,13 @@ def check_for_file():
             break
     return flag
 
-
+def check_for_summary():
+    flag = False
+    for file in os.listdir('.'):
+        if file == ngs_counts:
+            flag = True
+            break
+    return flag
 
 
 # quickly finds labs with HLA testing and creates a short xml file
@@ -145,7 +151,7 @@ def iterparsing():
     with open(ngs_only, 'a+') as f:
         f.write(foot)
 
-    print "{} labs with NGS tests out of {} total labs.\n {} tests out of {} total tests".format(ngs_lab_count, lab_count, NGS_test_count, test_count)
+    print "{} labs with NGS tests out of {} total labs.\n {} NGS tests out of {} total tests".format(ngs_lab_count, lab_count, NGS_test_count, test_count)
     print "Find file with relevant labs and tests output to GTR_NGS.xml"
 
     with open(ngs_counts, 'w') as f:
@@ -160,18 +166,20 @@ def print_summary():
         total_tests = stats[1]
         ngs_labs = stats[2]
         ngs_tests = stats[3]
-        print "{} labs with NGS tests out of {} total labs.\n {} tests out of {} total tests".format(ngs_labs, total_labs, ngs_tests, total_tests)
+        print "{} labs with NGS tests out of {} total labs.\n {} NGS tests out of {} total tests".format(ngs_labs, total_labs, ngs_tests, total_tests)
         print "Find file with relevant labs and tests output to GTR_NGS.xml"
 
 def main():
-    if not get_new_data():
-        if not check_for_file():
-            iterparsing()
-        else:
-            print_summary()
-    else:
-        if check_for_file():
-            print_summary()
+    if get_new_data(): # if a new data-set is found
+        iterparsing() # then parse it to find results, print, and save
+    else: # if we already have the most recent data-set
+        if check_for_file(): # check that we still have the final parsed file
+            if check_for_summary(): # check that we still have the summary file from last time
+                print_summary() # then print the summary file generated last time. NEED TO ADD CHECK FOR THIS TOO.
+            else: # if we don't have the summary from last run
+                iterparsing() # then parse again.
+        else: # if we don't have the parsed out file, do it again
+            iterparsing() # if the parsed file isn't there, parse it again.
 
 
 

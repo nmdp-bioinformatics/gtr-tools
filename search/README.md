@@ -7,9 +7,15 @@ gtr_search.py is a Python 2.7 program that provides a GUI for searching and down
 
 First, make sure you have followed the steps in the root [README](../README.md)
 
-There are multiple ways to execute a python program, it is too exhaustive to list here.
+If you have the correct version of python, with all required modules, added to your system path
+ (in environment variables (windows), .bashrc or .bash_profile (linux/osx))
+  then you should be able to cd to the directory and enter `python gtr_search.py`
 
-Here are some resources if you need help executing this program:
+Issues may arise if you have multiple installations of Python. In that situation, I would suggest using a virtual
+environment or else you need to specify the full path to the installation of python you want to use
+ or prepend/replace in path so it runs the required version first.
+
+Here are some resources if you need help with executing python programs:
 
 * [Python on Windows](https://docs.python.org/2/faq/windows.html)
 * [Python on Macintosh](https://docs.python.org/2/using/mac.html)
@@ -35,10 +41,12 @@ Search by gene produces test IDs that are related to the search. By default, the
 
 #### Screenshots:
 
-![GUI Screenshot](../images/search_gtr_screenshot.png)
+##### Windows (Windows 7)
+![GUI Screenshot on Windows](../images/search_gtr_screenshot.png)
+
+##### Linux (Linux Mint 17.2 'Rafaela' Cinnamon)
+![GUI Screenshot on Linux Mint 17.2](../images/search_gtr_screenshot_linuxmint.png)
 
 #### Flow Diagram:
-
-If you are curious what the program is doing:
 
 ![Program Flow Diagram](../images/search_gtr_flow.png)

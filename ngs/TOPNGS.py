@@ -26,6 +26,7 @@ input = 'GTR_NGS.xml'
 def find_detailed_NGS():
     """Find NGS tests/labs with high detail."""
 
+    print "Looking for the best documented tests now..."
     labs = set()
     tests = set()
 
@@ -70,6 +71,7 @@ def find_detailed_NGS():
 
 def output(tests, labs):
     """Create new xml with only high detailed NGS tests."""
+    print "Saving the raw xml data for these tests and labs..."
     current_date = time.strftime("%m/%d/%Y")
     header = '<?xml version="1.0" encoding="UTF-8"?>'
     comment = '<!-- NGS Tests with highly detailed documentation; created '+current_date+' -->'
