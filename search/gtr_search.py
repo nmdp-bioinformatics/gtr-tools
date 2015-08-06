@@ -64,88 +64,107 @@ class retrieve:
         """Search for tests, by test id."""
         base = "http://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=gtr&rettype=gtracc&id="
         request = base + str(self.query)
-        response = urlopen(request).read()
-        filename = self.query + '.xml'
-        tree = etree.fromstring(response)
-        test_name = ''
-        for root in tree:
-            for labtest in root:
-                for element in labtest:
-                    if element.tag == 'TestName':
-                        test_name = element.text
-        prettytree = etree.tostring(tree, pretty_print=True)
-        if test_name:
-            if self.labtestoption == 'download':
-                with open(download_directory +'/' + filename, 'w') as f:
-                    f.write(prettytree)
-                result = "Found test " + self.query + ": " + str(test_name) +". Downloaded to " + filename + "\n"
-                submit_to_tkinter(result)
-                return None # not actually returning object back to thread call,
-                # sending over to Queue, so need to return None so thread exits
+        try:
+            response = urlopen(request).read()
+            filename = self.query + '.xml'
+            tree = etree.fromstring(response)
+            test_name = ''
+            for root in tree:
+                for labtest in root:
+                    for element in labtest:
+                        if element.tag == 'TestName':
+                            test_name = element.text
+            prettytree = etree.tostring(tree, pretty_print=True)
+            if test_name:
+                if self.labtestoption == 'download':
+                    with open(download_directory +'/' + filename, 'w') as f:
+                        f.write(prettytree)
+                    result = "Found test " + self.query + ": " + str(test_name) +". Downloaded to " + filename + "\n"
+                    submit_to_tkinter(result)
+                    return None # not actually returning object back to thread call,
+                    # sending over to Queue, so need to return None so thread exits
+                else:
+                    result = "Found test " + self.query + ": " + str(test_name) +". Select 'download' on the bottom left to save this data.\n"
+                    submit_to_tkinter(result)
+                    return None
             else:
-                result = "Found test " + self.query + ": " + str(test_name) +". Select 'download' on the bottom left to save this data.\n"
+                result = "Sorry, could not find test '" +  self.query + "'. Please try another search.\n"
                 submit_to_tkinter(result)
                 return None
-        else:
-            result = "Sorry, could not find test '" +  self.query + "'. Please try another search.\n"
+        except HTTPError, e:
+            result = 'the request failed with error {}\n'.format(e.code)
             submit_to_tkinter(result)
             return None
+        except URLError, e:
+            result = 'the request failed with a url error {}. Please check your internet connection.\n'.format(e)
+            submit_to_tkinter(result)
+            return None
+
 
     def lab_search(self):
         """Retrieve lab data."""
         # this one is a bit of a hack, efetch not enabled for lab yet
         base1 = "http://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi?db=orgtrack&id="
         request1 = base1 + str(self.query)
-        response1 = urlopen(request1).read()
-        tree = etree.fromstring(response1)
-        self.lab_name = ''
-        for root in tree:
-            for ele in root:
-                if ele.tag == 'DocumentSummary':
-                    for element in ele:
-                        if element.tag == 'TITLE':
-                            self.lab_name = element.text
-        if self.lab_name:
-            if self.labtestoption == '' or self.labtestoption == 'name':
-                result = "Found lab " + self.query + ": " + self.lab_name + ". Select 'download' on the bottom left to save this data.\n"
+        try:
+            response1 = urlopen(request1).read()
+            tree = etree.fromstring(response1)
+            self.lab_name = ''
+            for root in tree:
+                for ele in root:
+                    if ele.tag == 'DocumentSummary':
+                        for element in ele:
+                            if element.tag == 'TITLE':
+                                self.lab_name = element.text
+            if self.lab_name:
+                if self.labtestoption == '' or self.labtestoption == 'name':
+                    result = "Found lab " + self.query + ": " + self.lab_name + ". Select 'download' on the bottom left to save this data.\n"
+                    submit_to_tkinter(result)
+                    return None
+                elif self.labtestoption == 'download':
+                    base2 = "http://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi?db=gtr&term="
+                    request2 = base2 + str(self.query)  + '[All%20Fields]'
+                    self.initial_response = urlopen(request2).read()
+                    tree2 = etree.fromstring(self.initial_response)
+                    some_ids = []
+                    for element in tree2:
+                        if element.tag == 'IdList':
+                            for child in element:
+                                some_ids.append(child.text)
+                    filename = self.query + '.xml'
+                    for item in some_ids:
+                        base3 = "http://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=gtr&rettype=gtracc&id="
+                        request3 = base3 + str(item)
+                        response3 = urlopen(request3).read()
+                        tree3 = etree.fromstring(response3)
+                        flag = False # flagged True if the correct data is found
+                        for root in tree3:
+                            for labtest in root:
+                                if labtest.tag == 'GTRLab':
+                                    if labtest.get('id') == str(self.query):
+                                        flag = True
+                                        for root in tree3:
+                                            for labtest in root:
+                                                if labtest.tag == 'GTRLab':
+                                                    x = etree.tostring(labtest, encoding='UTF-8')
+                                                    with open(download_directory +'/' + filename, 'w') as f:
+                                                        f.write(x)
+                                                    result = "Found lab " + self.query + ": " + self.lab_name + ". Downloaded to '" + filename + "'\n"
+                                                    submit_to_tkinter(result)
+                                                    return None
+                                        break
+                        if flag:
+                            break
+            else:
+                result = "Could not find lab '" + self.query + "'. Please try searching again, or use the term search.\n"
                 submit_to_tkinter(result)
                 return None
-            elif self.labtestoption == 'download':
-                base2 = "http://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi?db=gtr&term="
-                request2 = base2 + str(self.query)  + '[All%20Fields]'
-                self.initial_response = urlopen(request2).read()
-                tree2 = etree.fromstring(self.initial_response)
-                some_ids = []
-                for element in tree2:
-                    if element.tag == 'IdList':
-                        for child in element:
-                            some_ids.append(child.text)
-                filename = self.query + '.xml'
-                for item in some_ids:
-                    base3 = "http://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=gtr&rettype=gtracc&id="
-                    request3 = base3 + str(item)
-                    response3 = urlopen(request3).read()
-                    tree3 = etree.fromstring(response3)
-                    flag = False # flagged True if the correct data is found
-                    for root in tree3:
-                        for labtest in root:
-                            if labtest.tag == 'GTRLab':
-                                if labtest.get('id') == str(self.query):
-                                    flag = True
-                                    for root in tree3:
-                                        for labtest in root:
-                                            if labtest.tag == 'GTRLab':
-                                                x = etree.tostring(labtest, encoding='UTF-8')
-                                                with open(download_directory +'/' + filename, 'w') as f:
-                                                    f.write(x)
-                                                result = "Found lab " + self.query + ": " + self.lab_name + ". Downloaded to '" + filename + "'\n"
-                                                submit_to_tkinter(result)
-                                                return None
-                                    break
-                    if flag:
-                        break
-        else:
-            result = "Could not find lab '" + self.query + "'. Please try searching again, or use the term search.\n"
+        except HTTPError, e:
+            result = 'the request failed with error {}\n'.format(e.code)
+            submit_to_tkinter(result)
+            return None
+        except URLError, e:
+            result = 'the request failed with a url error {}. Please check your internet connection.\n'.format(e)
             submit_to_tkinter(result)
             return None
 
@@ -157,24 +176,33 @@ class retrieve:
             request += '[' + str(self.field) + ']'
         except:
             pass
-        self.initial_response = urlopen(request).read()
-        tree = etree.fromstring(self.initial_response)
-        for element in tree:
-            # print element.tag, element.text
-            if element.tag == 'Count':
-                self.result_count = int(element.text)
-                try:
-                    self.get_all_ids()
-                    self.get_some_ids()
-                except:
-                    if self.result_count > 0:
-                        result = "There are " + str(self.result_count) + " results for your search. Please specify how you want to retrieve the results by selecting a return method on the bottom left.\n"
-                        submit_to_tkinter(result)
-                        return None
-                    else:
-                        result = "No results. Please try a different search.\n"
-                        submit_to_tkinter(result)
-                        return None
+        try:
+            self.initial_response = urlopen(request).read()
+            tree = etree.fromstring(self.initial_response)
+            for element in tree:
+                # print element.tag, element.text
+                if element.tag == 'Count':
+                    self.result_count = int(element.text)
+                    try:
+                        self.get_all_ids()
+                        self.get_some_ids()
+                    except:
+                        if self.result_count > 0:
+                            result = "There are " + str(self.result_count) + " results for your search. Please specify how you want to retrieve the results by selecting a return method on the bottom left.\n"
+                            submit_to_tkinter(result)
+                            return None
+                        else:
+                            result = "No results. Please try a different search.\n"
+                            submit_to_tkinter(result)
+                            return None
+        except HTTPError, e:
+            result = 'the request failed with error {}\n'.format(e.code)
+            submit_to_tkinter(result)
+            return None
+        except URLError, e:
+            result = 'the request failed with a url error {}. Please check your internet connection.\n'.format(e)
+            submit_to_tkinter(result)
+            return None
 
     def get_all_ids(self):
         """Need to find count in term search first, then pass to here to return all IDs."""
@@ -186,25 +214,34 @@ class retrieve:
                 request += '&retmax=' + str(self.result_count)
             except:
                 pass
-            response = urlopen(request).read()
-            tree = etree.fromstring(response)
-            all_ids = []
-            filename = self.query + 'results.txt'
-            for element in tree:
-                # print element.tag
-                if element.tag == 'IdList':
-                    for child in element:
-                        all_ids.append(child.text)
-            if self.result_count < 1:
-                result = "Sorry, no results for that search. Try again.\n"
+            try:
+                response = urlopen(request).read()
+                tree = etree.fromstring(response)
+                all_ids = []
+                filename = self.query + 'results.txt'
+                for element in tree:
+                    # print element.tag
+                    if element.tag == 'IdList':
+                        for child in element:
+                            all_ids.append(child.text)
+                if self.result_count < 1:
+                    result = "Sorry, no results for that search. Try again.\n"
+                    submit_to_tkinter(result)
+                    return None
+                else:
+                    with open(download_directory +'/' + filename, 'w') as f:
+                        f.write('Test_ID\n')
+                        for item in all_ids:
+                            f.write(str(item) + '\n')
+                    result = str(self.result_count) + " results, saved to '" + filename + "'\n"
+                    submit_to_tkinter(result)
+                    return None
+            except HTTPError, e:
+                result = 'the request failed with error {}\n'.format(e.code)
                 submit_to_tkinter(result)
                 return None
-            else:
-                with open(download_directory +'/' + filename, 'w') as f:
-                    f.write('Test_ID\n')
-                    for item in all_ids:
-                        f.write(str(item) + '\n')
-                result = str(self.result_count) + " results, saved to '" + filename + "'\n"
+            except URLError, e:
+                result = 'the request failed with a url error {}. Please check your internet connection.\n'.format(e)
                 submit_to_tkinter(result)
                 return None
 
